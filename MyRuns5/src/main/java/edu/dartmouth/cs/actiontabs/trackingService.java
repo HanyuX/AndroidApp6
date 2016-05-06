@@ -18,6 +18,7 @@ import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 
@@ -78,12 +79,13 @@ public class trackingService extends Service implements SensorEventListener{
         mBuff = new ArrayBlockingQueue<>(buffSize);
         locationManager.requestLocationUpdates(provider, 2000, 10,
                 locationListener);
-
-        myAsync.execute();
     }
 
     @Override
     public IBinder onBind(Intent intent) {
+        String type = intent.getExtras().getString("inputType");
+        if(type.equals("Automatic"))
+            myAsync.execute();
         return mBinder;
     }
 
@@ -169,7 +171,7 @@ public class trackingService extends Service implements SensorEventListener{
     }
 
     public void onSensorChanged(SensorEvent event) {
-        if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+        if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
             double m = Math.sqrt(event.values[0] * event.values[0]
                     + event.values[1] * event.values[1] + event.values[2]
                     * event.values[2]);
@@ -193,7 +195,7 @@ public class trackingService extends Service implements SensorEventListener{
                         featureVector[featureSize] = Max;
                         fft.fft(featureBuff, featureBuffFFT);
                         for(int i = 0 ; i < featureSize ; ++i)
-                            featureVector[i] = featureBuff[i]*featureBuff[i] + featureBuffFFT[i]*featureBuffFFT[i];
+                            featureVector[i] = Math.sqrt(featureBuff[i]*featureBuff[i] + featureBuffFFT[i]*featureBuffFFT[i]);
 
                         activityType[(int)WekaClassifier.classify(featureVector)]++;
                         for(int i = 0 ; i < typeNum ; ++i){
@@ -202,7 +204,7 @@ public class trackingService extends Service implements SensorEventListener{
                                 if(activityType[i] < activityType[j])
                                     break;
                             if(j == typeNum){
-                                switch (j){
+                                switch (i){
                                     case 0:
                                         Item.setActivityType("Standing");
                                         break;
@@ -212,14 +214,18 @@ public class trackingService extends Service implements SensorEventListener{
                                     case 2:
                                         Item.setActivityType("Running");
                                 }
+                                break;
                             }
                         }
-                        sendBroadcast(new Intent(ACTION_UPDATE));
+                        sendBroadcast(new Intent(Type_Update));
                         buffN = 0;
                         Max = 0;
-                    }else {
-                        featureBuff[buffN++] = mBuff.take().doubleValue();
-                        Max = Math.max(Max, featureVector[buffN]);
+                        Thread.sleep(500);
+                    }else{
+                        try {
+                            featureBuff[buffN] = mBuff.take().doubleValue();
+                            Max = Math.max(Max, featureVector[buffN++]);
+                        }catch (Exception e){};
                     }
                 }
             }catch (Exception e){}

@@ -139,8 +139,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         Log.d("xue", "mapCreate");
-        startService(new Intent(this, trackingService.class));
-        bindService(new Intent(this, trackingService.class), mConnection, Context.BIND_AUTO_CREATE);
+        Bundle bundle = new Bundle();
+        bundle.putString("inputType", inputType);
+        Intent intent = new Intent(this, trackingService.class);
+        intent.putExtras(bundle);
+        startService(intent);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         IntentFilter filter = new IntentFilter(trackingService.ACTION_UPDATE);
         registerReceiver(onEvent, filter);
         filter = new IntentFilter(trackingService.Type_Update);
