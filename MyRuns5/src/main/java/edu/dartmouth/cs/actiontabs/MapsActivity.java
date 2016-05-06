@@ -143,7 +143,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         bindService(new Intent(this, trackingService.class), mConnection, Context.BIND_AUTO_CREATE);
         IntentFilter filter = new IntentFilter(trackingService.ACTION_UPDATE);
         registerReceiver(onEvent, filter);
-        filter = new IntentFilter(trackingService.Type_UPDATE);
+        filter = new IntentFilter(trackingService.Type_Update);
         registerReceiver(onSensor, filter);
         startTime = Calendar.getInstance().getTimeInMillis();
     }
