@@ -6,10 +6,14 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -18,12 +22,13 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.text.DecimalFormat;
 import java.util.Calendar;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * Service to track position by Android System Service
  * Created by xuehanyu on 4/27/16.
  */
-public class trackingService extends Service {
+public class trackingService extends Service implements SensorEventListener{
     private final IBinder mBinder = new trackingBinder();
     private databaseItem Item = new databaseItem();
     private double lastAltitude = 0;                               //indicate the last altitude
@@ -34,6 +39,14 @@ public class trackingService extends Service {
     private double Pi = 3.1415926;
     private NotificationManager notificationManager;
     public static final String ACTION_UPDATE = "Update_Location";
+    public static final String Type_Update = "Update_Type";
+    private ArrayBlockingQueue<Double> mBuff;
+    private int featureSize = 64;
+    private int buffSize = 128;
+    private OnSensorChangedTask myAsync = new OnSensorChangedTask();
+    private int typeNum = 3;
+    private int[] activityType = new int[typeNum];
+
     @Override
     public void onCreate(){
         super.onCreate();
@@ -54,8 +67,10 @@ public class trackingService extends Service {
         startTime = Calendar.getInstance().getTimeInMillis();
         Location l = locationManager.getLastKnownLocation(provider);
         sendLocationtoMap(l, true);
+        mBuff = new ArrayBlockingQueue<>(buffSize);
         locationManager.requestLocationUpdates(provider, 2000, 10,
                 locationListener);
+        myAsync.execute();
     }
 
     @Override
@@ -140,6 +155,69 @@ public class trackingService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        myAsync.cancel(true);
         notificationManager.cancelAll();
+    }
+
+    public void onSensorChanged(SensorEvent event) {
+        if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+            double m = Math.sqrt(event.values[0] * event.values[0]
+                    + event.values[1] * event.values[1] + event.values[2]
+                    * event.values[2]);
+            mBuff.offer(m);
+        }
+    }
+
+    private class OnSensorChangedTask extends AsyncTask<Void, Void, Void> {
+        private double[] featureVector = new double[featureSize+1];
+        private double[] featureBuff = new double[featureSize];
+        private double[] featureBuffFFT = new double[featureSize];
+        FFT fft = new FFT(featureSize);
+
+        private int buffN = 0;
+        private double Max = 0;
+        @Override
+        protected Void doInBackground(Void... arg0) {
+            try {
+                while (!isCancelled()) {
+                    if(buffN == featureSize){
+                        featureVector[featureSize] = Max;
+                        fft.fft(featureBuff, featureBuffFFT);
+                        for(int i = 0 ; i < featureSize ; ++i)
+                            featureVector[i] = featureBuff[i]*featureBuff[i] + featureBuffFFT[i]*featureBuffFFT[i];
+
+                        activityType[WekaClassifier.classify(featureVector)]++;
+                        for(int i = 0 ; i < typeNum ; ++i){
+                            int j;
+                            for(j = 0 ; j < typeNum ; ++j)
+                                if(activityType[i] < activityType[j])
+                                    break;
+                            if(j == typeNum){
+                                switch (j){
+                                    case 0:
+                                        Item.setActivityType("Standing");
+                                        break;
+                                    case 1:
+                                        Item.setActivityType("Walking");
+                                        break;
+                                    case 2:
+                                        Item.setActivityType("Running");
+                                }
+                            }
+                        }
+                        sendBroadcast(new Intent(ACTION_UPDATE));
+                        buffN = 0;
+                        Max = 0;
+                    }else {
+                        featureBuff[buffN++] = mBuff.take().doubleValue();
+                        Max = Math.max(Max, featureVector[buffN]);
+                    }
+                }
+            }catch (Exception e){}
+            return null;
+        }
+    }
+
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
 }
