@@ -65,6 +65,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         helper = new DataBaseHelper(getApplicationContext());
     }
 
+    private BroadcastReceiver onSensor = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (binder != null) {
+                item = binder.getItems();
+                if (inputType.equals("Automatic")) {
+                    status.setText("Type: " + item.getActivityType());
+                    type = item.getActivityType();
+                }
+            }
+        }
+    };
+
     /*
      * Broadcast Receiver of tracking service
      */
@@ -130,6 +143,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         bindService(new Intent(this, trackingService.class), mConnection, Context.BIND_AUTO_CREATE);
         IntentFilter filter = new IntentFilter(trackingService.ACTION_UPDATE);
         registerReceiver(onEvent, filter);
+        filter = new IntentFilter(trackingService.Type_UPDATE);
+        registerReceiver(onSensor, filter);
         startTime = Calendar.getInstance().getTimeInMillis();
     }
 
@@ -223,6 +238,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         unbindService(mConnection);
         stopService(new Intent(this, trackingService.class));
         unregisterReceiver(onEvent);
+        unregisterReceiver(onSensor);
     }
 
     /*
