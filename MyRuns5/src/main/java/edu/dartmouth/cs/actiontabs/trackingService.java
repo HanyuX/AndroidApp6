@@ -69,7 +69,7 @@ public class trackingService extends Service implements SensorEventListener{
 
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mAccelerometer = mSensorManager
-                .getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+                .getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorManager.registerListener(this, mAccelerometer,
                 SensorManager.SENSOR_DELAY_FASTEST);
         startTime = Calendar.getInstance().getTimeInMillis();
@@ -193,7 +193,7 @@ public class trackingService extends Service implements SensorEventListener{
                         featureVector[featureSize] = Max;
                         fft.fft(featureBuff, featureBuffFFT);
                         for(int i = 0 ; i < featureSize ; ++i)
-                            featureVector[i] = featureBuff[i]*featureBuff[i] + featureBuffFFT[i]*featureBuffFFT[i];
+                            featureVector[i] = Math.sqrt(featureBuff[i]*featureBuff[i] + featureBuffFFT[i]*featureBuffFFT[i]);
 
                         activityType[(int)WekaClassifier.classify(featureVector)]++;
                         for(int i = 0 ; i < typeNum ; ++i){
@@ -202,7 +202,7 @@ public class trackingService extends Service implements SensorEventListener{
                                 if(activityType[i] < activityType[j])
                                     break;
                             if(j == typeNum){
-                                switch (j){
+                                switch (i){
                                     case 0:
                                         Item.setActivityType("Standing");
                                         break;
@@ -214,12 +214,14 @@ public class trackingService extends Service implements SensorEventListener{
                                 }
                             }
                         }
-                        sendBroadcast(new Intent(ACTION_UPDATE));
                         buffN = 0;
                         Max = 0;
                     }else {
-                        featureBuff[buffN++] = mBuff.take().doubleValue();
-                        Max = Math.max(Max, featureVector[buffN]);
+                        try {
+                            featureBuff[buffN] = mBuff.take().doubleValue();
+                            Max = Math.max(Max, featureVector[buffN++]);
+                        }
+                        catch(Exception e) {}
                     }
                 }
             }catch (Exception e){}
