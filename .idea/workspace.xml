@@ -37,8 +37,8 @@
       <file leaf-file-name="trackingService.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/MyRuns5/src/main/java/edu/dartmouth/cs/actiontabs/trackingService.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="4.239631">
-              <caret line="210" column="26" selection-start-line="210" selection-start-column="26" selection-end-line="210" selection-end-column="26" />
+            <state vertical-scroll-proportion="-2.640553">
+              <caret line="71" column="67" selection-start-line="71" selection-start-column="67" selection-end-line="71" selection-end-column="67" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -2269,6 +2269,7 @@
     <entry file="file://$PROJECT_DIR$/MyRuns5/src/main/java/edu/dartmouth/cs/actiontabs/trackingService.java">
       <provider selected="true" editor-type-id="text-editor">
 <<<<<<< HEAD
+<<<<<<< HEAD
         <state vertical-scroll-proportion="0.0">
           <caret line="25" column="13" selection-start-line="25" selection-start-column="13" selection-end-line="25" selection-end-column="13" />
           <folding />
@@ -2309,6 +2310,10 @@
 =======
         <state vertical-scroll-proportion="4.239631">
           <caret line="210" column="26" selection-start-line="210" selection-start-column="26" selection-end-line="210" selection-end-column="26" />
+=======
+        <state vertical-scroll-proportion="-2.640553">
+          <caret line="71" column="67" selection-start-line="71" selection-start-column="67" selection-end-line="71" selection-end-column="67" />
+>>>>>>> 076e3de9b41466c8258131dfeefb041a8da30bfc
           <folding>
             <element signature="imports" expanded="true" />
 >>>>>>> b86a18b4cdcdee4cda2153ab9a76a1caee203256

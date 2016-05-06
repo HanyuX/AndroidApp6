@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -46,6 +47,8 @@ public class trackingService extends Service implements SensorEventListener{
     private OnSensorChangedTask myAsync = new OnSensorChangedTask();
     private int typeNum = 3;
     private int[] activityType = new int[typeNum];
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometer;
 
     @Override
     public void onCreate(){
@@ -64,6 +67,11 @@ public class trackingService extends Service implements SensorEventListener{
         criteria.setCostAllowed(true);
         String provider = locationManager.getBestProvider(criteria, true);
 
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        mAccelerometer = mSensorManager
+                .getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        mSensorManager.registerListener(this, mAccelerometer,
+                SensorManager.SENSOR_DELAY_FASTEST);
         startTime = Calendar.getInstance().getTimeInMillis();
         Location l = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
         sendLocationtoMap(l, true);
