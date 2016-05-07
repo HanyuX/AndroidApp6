@@ -46,6 +46,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private long startTime;
     private Marker startMarker, endMarker;                                      //the mark for start and end
     private String res;
+    private static final int TYPE_NUM = 3;
+    private int []activity = new int[TYPE_NUM];
+    private String atype;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,10 +72,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onReceive(Context context, Intent intent) {
             if (binder != null) {
-                item = binder.getItems();
+                atype = binder.getType();
                 if (inputType.equals("Automatic")) {
-                    status.setText("Type: " + item.getActivityType());
-                    type = item.getActivityType();
+                    status.setText("Type: " + atype);
+                    if (atype.equals("Standing")) {
+                        activity[0]++;
+                    }
+                    else if (atype.equals("Walking")) {
+                        activity[1]++;
+                    }
+                    else if (atype.equals("Running")) {
+                        activity[2]++;
+                    }
                 }
             }
         }
@@ -87,9 +98,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.d("liu", "receive notification");
             if (binder != null) {
                 res = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("Unit Preference", "Imperial (Miles)");
-                System.out.println(res);
+                System.out.println(res); //debug
                 item = binder.getItems();
-                status.setText("Type: " + type);
+                if (inputType.equals("GPS"))
+                    status.setText("Type: " + type);
                 if (res.equals("Imperial (Miles)")) {
                     avgSpeed.setText("Avg speed: " + item.getAvgSpeed() + " m/h");
                     curSpeed.setText("Cur Speed: " + item.getCurSpeed() + " m/h");
@@ -249,7 +261,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Save map to database
      */
     public void saveMap(View view) {
-        item.setActivityType(type);
+        if (inputType.equals("GPS")) {
+            item.setActivityType(type);
+        }
+        else if (inputType.equals("Automatic")){
+            int max = 0, index = 0;
+            for (int i = 0; i < TYPE_NUM; i++) {
+                if (activity[i] > max) {
+                    max = activity[i];
+                    index = i;
+                }
+            }
+            switch (index) {
+                case 0:
+                    type = "Standing";
+                    break;
+                case 1:
+                    type = "Walking";
+                    break;
+                case 2:
+                    type = "Running";
+                    break;
+                default:
+                    break;
+            }
+            item.setActivityType(type);
+        }
         item.setInputType(inputType);
         item.setID(System.currentTimeMillis()+"-"+item.getInputType()+"-"+item.getActivityType());
         item.setCalories((int)(item.getDistance() * 99.456));

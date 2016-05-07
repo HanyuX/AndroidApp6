@@ -49,6 +49,7 @@ public class trackingService extends Service implements SensorEventListener{
     private int[] activityType = new int[typeNum];
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
+    private String atype;
 
     @Override
     public void onCreate(){
@@ -69,7 +70,7 @@ public class trackingService extends Service implements SensorEventListener{
 
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mAccelerometer = mSensorManager
-                .getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+                .getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         mSensorManager.registerListener(this, mAccelerometer,
                 SensorManager.SENSOR_DELAY_FASTEST);
         startTime = Calendar.getInstance().getTimeInMillis();
@@ -140,6 +141,10 @@ public class trackingService extends Service implements SensorEventListener{
         public databaseItem getItems() {
             return Item;
         }
+
+        public String getType() {
+            return atype;
+        }
     }
 
     /*
@@ -191,41 +196,33 @@ public class trackingService extends Service implements SensorEventListener{
             try {
                 while (!isCancelled()) {
                     if(buffN == featureSize){
-                        featureVector[featureSize] = Max;
                         fft.fft(featureBuff, featureBuffFFT);
-                        for(int i = 0 ; i < featureSize ; ++i)
-                            featureVector[i] = Math.sqrt(featureBuff[i]*featureBuff[i] + featureBuffFFT[i]*featureBuffFFT[i]);
+                        for(int i = 0 ; i < featureSize ; ++i) {
+                            featureVector[i] = Math.sqrt(featureBuff[i] * featureBuff[i] + featureBuffFFT[i] * featureBuffFFT[i]);
+                            featureBuffFFT[i] = 0;
+                        }
 
-                        activityType[(int)WekaClassifier.classify(featureVector)]++;
-                        for(int i = 0 ; i < typeNum ; ++i){
-                            int j;
-                            for(j = 0 ; j < typeNum ; ++j)
-                                if(activityType[i] < activityType[j])
-                                    break;
-                            if(j == typeNum){
-                                switch (i){
-                                    case 0:
-                                        Item.setActivityType("Standing");
-                                        break;
-                                    case 1:
-                                        Item.setActivityType("Walking");
-                                        break;
-                                    case 2:
-                                        Item.setActivityType("Running");
-                                }
-                                break;
-                            }
+                        featureVector[featureSize] = Max;
+                        double res = WekaClassifier.classify(featureVector);
+                        if (res == 0.0) {
+                            atype = "Standing";
+                        }
+                        else if (res == 1.0) {
+                            atype = "Walking";
+                        }
+                        else if (res == 2.0) {
+                            atype = "Running";
                         }
                         sendBroadcast(new Intent(Type_Update));
-                        System.out.println(Item.getActivityType());
                         buffN = 0;
-                        Max = 0;
+                        Max = Double.MIN_VALUE;
                         Thread.sleep(500);
                     }else{
                         try {
                             featureBuff[buffN] = mBuff.take().doubleValue();
                             Max = Math.max(Max, featureVector[buffN++]);
-                        }catch (Exception e){};
+                        }catch (Exception e){
+                        }
                     }
                 }
             }catch (Exception e){}
