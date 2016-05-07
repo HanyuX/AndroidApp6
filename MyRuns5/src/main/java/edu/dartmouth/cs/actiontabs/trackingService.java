@@ -73,17 +73,18 @@ public class trackingService extends Service implements SensorEventListener{
         mSensorManager.registerListener(this, mAccelerometer,
                 SensorManager.SENSOR_DELAY_FASTEST);
         startTime = Calendar.getInstance().getTimeInMillis();
-        Location l = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        Location l = locationManager.getLastKnownLocation(provider);
         sendLocationtoMap(l, true);
         mBuff = new ArrayBlockingQueue<>(buffSize);
         locationManager.requestLocationUpdates(provider, 2000, 10,
                 locationListener);
-
-        myAsync.execute();
     }
 
     @Override
     public IBinder onBind(Intent intent) {
+        String type = intent.getExtras().getString("inputType");
+        if(type.equals("Automatic"))
+            myAsync.execute();
         return mBinder;
     }
 
@@ -169,7 +170,7 @@ public class trackingService extends Service implements SensorEventListener{
     }
 
     public void onSensorChanged(SensorEvent event) {
-        if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+        if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
             double m = Math.sqrt(event.values[0] * event.values[0]
                     + event.values[1] * event.values[1] + event.values[2]
                     * event.values[2]);
@@ -212,16 +213,19 @@ public class trackingService extends Service implements SensorEventListener{
                                     case 2:
                                         Item.setActivityType("Running");
                                 }
+                                break;
                             }
                         }
+                        sendBroadcast(new Intent(Type_Update));
+                        System.out.println(Item.getActivityType());
                         buffN = 0;
                         Max = 0;
-                    }else {
+                        Thread.sleep(500);
+                    }else{
                         try {
                             featureBuff[buffN] = mBuff.take().doubleValue();
                             Max = Math.max(Max, featureVector[buffN++]);
-                        }
-                        catch(Exception e) {}
+                        }catch (Exception e){};
                     }
                 }
             }catch (Exception e){}
