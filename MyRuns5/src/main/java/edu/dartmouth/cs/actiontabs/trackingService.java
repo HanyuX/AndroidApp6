@@ -205,13 +205,33 @@ public class trackingService extends Service implements SensorEventListener{
                         featureVector[featureSize] = Max;
                         double res = WekaClassifier.classify(featureVector);
                         if (res == 0.0) {
-                            atype = "Standing";
+                            activityType[0]++;
                         }
                         else if (res == 1.0) {
-                            atype = "Walking";
+                            activityType[1]++;
                         }
                         else if (res == 2.0) {
-                            atype = "Running";
+                            activityType[2]++;
+                        }
+                        int max = 0, index = 0;
+                        for (int i = 0; i < typeNum; i++) {
+                            if (activityType[i] > max) {
+                                max = activityType[i];
+                                index = i;
+                            }
+                        }
+                        switch (index) {
+                            case 0:
+                                atype = "Standing";
+                                break;
+                            case 1:
+                                atype = "Walking";
+                                break;
+                            case 2:
+                                atype = "Running";
+                                break;
+                            default:
+                                break;
                         }
                         sendBroadcast(new Intent(Type_Update));
                         buffN = 0;
