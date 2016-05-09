@@ -47,6 +47,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Marker startMarker, endMarker;                                      //the mark for start and end
     private String res;
     private String atype;
+    private int typeNum = 3;
+    private int[] activityType = new int[typeNum];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +68,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         helper = new DataBaseHelper(getApplicationContext());
     }
 
+    /*
+     * Broadcast Receiver for sensor change
+     */
     private BroadcastReceiver onSensor = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -73,6 +78,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 atype = binder.getType();
                 if (inputType.equals("Automatic")) {
                     status.setText("Type: " + atype);
+                    //calculate the frequency of the activity type
+                    if (atype.equals("Standing")) {
+                        activityType[0]++;
+                    }
+                    else if (atype.equals("Walking")) {
+                        activityType[1]++;
+                    }
+                    else if(atype.equals("Running")) {
+                        activityType[2]++;
+                    }
                 }
             }
         }
@@ -254,6 +269,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             item.setActivityType(type);
         }
         else if (inputType.equals("Automatic")){
+            int max = 0, index = 0;
+            //choose the most frequent one during the period
+            for (int i = 0; i < typeNum; i++) {
+                if (activityType[i] > max) {
+                    max = activityType[i];
+                    index = i;
+                }
+            }
+            switch (index) {
+                case 0:
+                    atype = "Standing";
+                    break;
+                case 1:
+                    atype = "Walking";
+                    break;
+                case 2:
+                    atype = "Running";
+                    break;
+                default:
+                    break;
+            }
             item.setActivityType(atype);
         }
         item.setInputType(inputType);

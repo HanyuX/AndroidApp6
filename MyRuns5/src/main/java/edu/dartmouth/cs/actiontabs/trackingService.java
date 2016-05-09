@@ -41,15 +41,13 @@ public class trackingService extends Service implements SensorEventListener{
     private NotificationManager notificationManager;
     public static final String ACTION_UPDATE = "Update_Location";
     public static final String Type_Update = "Update_Type";
-    private ArrayBlockingQueue<Double> mBuff;
+    private ArrayBlockingQueue<Double> mBuff;                      //define a blocking queue to store the data
     private int featureSize = 64;
     private int buffSize = 128;
-    private OnSensorChangedTask myAsync = new OnSensorChangedTask();
-    private int typeNum = 3;
-    private int[] activityType = new int[typeNum];
-    private SensorManager mSensorManager;
-    private Sensor mAccelerometer;
-    private String atype;
+    private OnSensorChangedTask myAsync = new OnSensorChangedTask();      //define a listener
+    private SensorManager mSensorManager;                                 //sensor manager
+    private Sensor mAccelerometer;                                        //Sensor
+    private String atype;                                          //store the type
 
     @Override
     public void onCreate(){
@@ -68,6 +66,7 @@ public class trackingService extends Service implements SensorEventListener{
         criteria.setCostAllowed(true);
         String provider = locationManager.getBestProvider(criteria, true);
 
+        //initilize the sensor manager
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mAccelerometer = mSensorManager
                 .getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
@@ -137,6 +136,9 @@ public class trackingService extends Service implements SensorEventListener{
         super.onTaskRemoved(rootIntent);
     }
 
+    /*
+     * define the own binder
+     */
     public class trackingBinder extends Binder {
         public databaseItem getItems() {
             return Item;
@@ -174,6 +176,9 @@ public class trackingService extends Service implements SensorEventListener{
         notificationManager.cancelAll();
     }
 
+    /*
+     * define the listener for the event of sensor change
+     */
     public void onSensorChanged(SensorEvent event) {
         if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
             double m = Math.sqrt(event.values[0] * event.values[0]
@@ -183,6 +188,9 @@ public class trackingService extends Service implements SensorEventListener{
         }
     }
 
+    /*
+     * Synctask for processing the data
+     */
     private class OnSensorChangedTask extends AsyncTask<Void, Void, Void> {
         private Double[] featureVector = new Double[featureSize+1];
         private double[] featureBuff = new double[featureSize];
@@ -203,36 +211,18 @@ public class trackingService extends Service implements SensorEventListener{
                         }
 
                         featureVector[featureSize] = Max;
+                        //classify the catogary
                         double res = WekaClassifier.classify(featureVector);
                         if (res == 0.0) {
-                            activityType[0]++;
+                            atype = "Standing";
                         }
                         else if (res == 1.0) {
-                            activityType[1]++;
+                            atype = "Walking";
                         }
                         else if (res == 2.0) {
-                            activityType[2]++;
+                            atype = "Running";
                         }
-                        int max = 0, index = 0;
-                        for (int i = 0; i < typeNum; i++) {
-                            if (activityType[i] > max) {
-                                max = activityType[i];
-                                index = i;
-                            }
-                        }
-                        switch (index) {
-                            case 0:
-                                atype = "Standing";
-                                break;
-                            case 1:
-                                atype = "Walking";
-                                break;
-                            case 2:
-                                atype = "Running";
-                                break;
-                            default:
-                                break;
-                        }
+                        //send broadcast to the map activity
                         sendBroadcast(new Intent(Type_Update));
                         buffN = 0;
                         Max = Double.MIN_VALUE;
